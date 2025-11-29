@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log*
+package-lock.json
+.env
+.env.local
+dist
+build
+.DS_Store
+Thumbs.db
+*.log
+frontend/.vite
