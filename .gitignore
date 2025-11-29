@@ -5,6 +5,7 @@ package-lock.json
 /backend/.env
 /backend/env.local
 /backend/uploads/
+/backend/.env
 
 # Frontend
 /frontend/node_modules/
