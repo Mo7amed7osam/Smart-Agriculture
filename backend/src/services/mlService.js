@@ -90,8 +90,18 @@ exports.analyzeImage = async (filePath) => {
     // Otherwise optional HTTP service
     const httpResult = await callHttpService(filePath);
     if (httpResult) return httpResult;
+
+    // Keep the mock generator for local/dev, but do not silently fallback in production
+    if (process.env.ALLOW_FALLBACK === 'true') {
+      return fallbackPrediction();
+    }
+
+    throw new Error('ML service unavailable: configure GEMINI_API_KEY or ML_SERVICE_URL.');
   } catch (err) {
-    console.warn('ML service failed, using mock prediction', err.message);
+    console.warn('ML service failed', err.message);
+    if (process.env.ALLOW_FALLBACK === 'true') {
+      return fallbackPrediction();
+    }
+    throw err;
   }
-  return fallbackPrediction();
 };
