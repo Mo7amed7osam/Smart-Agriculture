@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Disease Detector - Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2d5016;
+            text-align: center;
+        }
+        .upload-section {
+            margin: 30px 0;
+            text-align: center;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .upload-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .upload-button:hover {
+            background-color: #45a049;
+        }
+        .upload-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e8f5e9;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .result h2 {
+            margin-top: 0;
+            color: #2d5016;
+        }
+        .result p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .confidence {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .error {
+            background-color: #ffebee;
+            border-left-color: #f44336;
+            color: #c62828;
+        }
+        .disease-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2d5016;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌿 Plant Disease Detector</h1>
+        <p style="text-align: center; color: #666;">Upload a plant leaf image to detect diseases</p>
+        
+        <div class="upload-section">
+            <input type="file" id="imageInput" accept="image/*" onchange="handleImageSelect(event)">
+            <label for="imageInput">
+                <button class="upload-button" onclick="document.getElementById('imageInput').click()">
+                    📁 Choose Plant Image
+                </button>
+            </label>
+            <div id="preview"></div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <p>🔍 Analyzing your plant image...</p>
+            <p>This may take a few seconds...</p>
+        </div>
+
+        <div id="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://plant-disease-api-production-31cb.up.railway.app/predict';
+
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('preview').innerHTML = 
+                    `<img src="${e.target.result}" class="preview-image" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
+
+            // Upload and analyze
+            uploadImage(file);
+        }
+
+        async function uploadImage(file) {
+            const loadingDiv = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+            
+            // Show loading, hide result
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResult(data);
+            } catch (error) {
+                console.error('Error:', error);
+                displayError(error.message);
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            const confidencePercent = (data.confidence_score * 100).toFixed(2);
+            
+            const isHealthy = data.predicted_class.toLowerCase().includes('healthy');
+            const emoji = isHealthy ? '✅' : '⚠️';
+            
+            resultDiv.innerHTML = `
+                <div class="result">
+                    <h2>${emoji} Analysis Complete</h2>
+                    <div class="disease-name">${data.predicted_class.replace(/_/g, ' ')}</div>
+                    <p><strong>Confidence:</strong> <span class="confidence">${confidencePercent}%</span></p>
+                    <p><strong>💡 Recommendation:</strong></p>
+                    <p style="font-size: 18px;">${data.recommended_action}</p>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+
+        function displayError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="result error">
+                    <h2>❌ Error</h2>
+                    <p>Failed to analyze the image: ${message}</p>
+                    <p>Please try again with a different image.</p>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

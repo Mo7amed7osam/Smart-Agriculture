@@ -1,13 +1,15 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import numpy as np
 import os
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Load the model
-model = load_model('plant_disease_model.keras')  # Ensure this path is correct
+model = load_model('plant_disease_model.h5')  # Using .h5 file
 
 # Define class indices (class mapping)
 class_indices = {
