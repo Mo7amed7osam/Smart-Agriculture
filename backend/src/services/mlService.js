@@ -27,7 +27,7 @@ const fallbackPrediction = () => {
 };
 
 const geminiKey = process.env.GEMINI_API_KEY;
-// Allow overrides via env; defaults to models your key actually lists (2.5 family)
+console.log(geminiKey);
 const geminiModelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const geminiModelFallback = process.env.GEMINI_MODEL_FALLBACK || 'gemini-2.5-pro';
 const geminiTextMode = process.env.GEMINI_TEXT_MODE === 'true';
@@ -41,7 +41,32 @@ const prompt = `You are a plant disease detector. Given a leaf photo, respond wi
   "confidence": number 0-1,
   "recommendation": "short action if healthy Plant say looks healthy. Keep monitoring and maintain regular care"
 }
+  if the photo uploaded not aleaf, respond with healthStatus "Unknown" and diseaseType "Not a leaf".
 Only return JSON.`;
+
+const isNonLeafPrediction = (prediction) => {
+  if (!prediction) return true;
+  const diseaseText = `${prediction.diseaseType || ''}`.toLowerCase();
+  const statusText = `${prediction.healthStatus || ''}`.toLowerCase();
+  const looksUnknown =
+    diseaseText === 'unknown' ||
+    diseaseText.includes('unknown') ||
+    diseaseText.includes('not a leaf') ||
+    diseaseText.includes('non leaf') ||
+    statusText.includes('unknown');
+  const veryLowConfidence =
+    typeof prediction.confidence === 'number' && prediction.confidence >= 0 ? prediction.confidence < 0.15 : false;
+  return looksUnknown || veryLowConfidence;
+};
+
+const validateLeafPrediction = (prediction) => {
+  if (isNonLeafPrediction(prediction)) {
+    const err = new Error('Unknown image. Please upload a valid leaf photo.');
+    err.status = 400;
+    throw err;
+  }
+  return prediction;
+};
 
 const parseGeminiResponse = (text) => {
   if (!text) throw new Error('Empty Gemini response');
@@ -183,7 +208,7 @@ exports.analyzeImage = async (filePath) => {
     try {
       console.info('[ML] analyzeImage: attempting plant-disease API');
       const apiResult = await callPlantDiseaseApi(filePath);
-      if (apiResult) return apiResult;
+      if (apiResult) return validateLeafPrediction(apiResult);
     } catch (apiErr) {
       console.warn('[ML] Plant API failed, will fallback to Gemini', apiErr.message);
     }
@@ -191,16 +216,16 @@ exports.analyzeImage = async (filePath) => {
     // Fallback: Gemini
     console.info('[ML] analyzeImage: attempting Gemini path');
     const geminiResult = await callGemini(filePath);
-    if (geminiResult) return geminiResult;
+    if (geminiResult) return validateLeafPrediction(geminiResult);
 
     // Optional secondary HTTP service
     const httpResult = await callHttpService(filePath);
-    if (httpResult) return httpResult;
+    if (httpResult) return validateLeafPrediction(httpResult);
 
     // Keep the mock generator for local/dev, but do not silently fallback in production
     if (process.env.ALLOW_FALLBACK === 'true') {
       console.warn('[ML] analyzeImage: using fallbackPrediction()');
-      return fallbackPrediction();
+      return validateLeafPrediction(fallbackPrediction());
     }
 
     throw new Error(
@@ -209,7 +234,7 @@ exports.analyzeImage = async (filePath) => {
   } catch (err) {
     console.warn('ML service failed', err.message);
     if (process.env.ALLOW_FALLBACK === 'true') {
-      return fallbackPrediction();
+      return validateLeafPrediction(fallbackPrediction());
     }
     throw err;
   }
