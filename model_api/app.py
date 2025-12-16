@@ -28,7 +28,7 @@ class_indices = {
     12: {'predicted_class': 'YellowLeaf__Curl_Virus', 'recommended_action': 'No cure available, remove infected plant.'},
     13: {'predicted_class': 'mosaic_virus', 'recommended_action': 'No cure available, remove infected plant.'},
     14: {'predicted_class': 'healthy', 'recommended_action': 'No action needed.'}
-    15:{'predicted_class': 'Unknown image', 'Please upload a valid leaf photo.'}
+    15:{'predicted_class': 'Unknown image', 'recommended_action' : 'Please upload a valid leaf photo.'}
 }
 
 
