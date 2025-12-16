@@ -17,4 +17,15 @@ jobs:
             echo "RENDER_DEPLOY_HOOK secret is missing."
             exit 1
           fi
-          curl -fsSL "$RENDER_DEPLOY_HOOK"
+          echo "Triggering Render deploy..."
+          response="$(curl -s -w "\n%{http_code}" "$RENDER_DEPLOY_HOOK")"
+          body="$(printf "%s" "$response" | sed '$d')"
+          status="$(printf "%s" "$response" | tail -n 1)"
+
+          echo "Render HTTP status: $status"
+          echo "Render response body: $body"
+
+          if [ "$status" -ge 400 ] || [ -z "$body" ]; then
+            echo "Render deploy hook failed."
+            exit 1
+          fi
