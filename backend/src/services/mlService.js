@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const FormData = require('form-data');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const mockDiseases = [
+const Diseases = [
   { diseaseType: 'Leaf mold', recommendation: 'Improve ventilation and reduce humidity.' },
   { diseaseType: 'Bacterial spot', recommendation: 'Remove infected leaves and avoid overhead watering.' },
   { diseaseType: 'Early blight', recommendation: 'Apply appropriate fungicide and rotate crops.' },
@@ -11,7 +12,7 @@ const mockDiseases = [
 ];
 
 const fallbackPrediction = () => {
-  const sample = mockDiseases[Math.floor(Math.random() * mockDiseases.length)];
+  const sample = Diseases[Math.floor(Math.random() * Diseases.length)];
   const confidence = Number((0.6 + Math.random() * 0.35).toFixed(2));
   const healthStatus = confidence > 0.7 ? 'Diseased' : 'Healthy';
   return {
@@ -20,12 +21,11 @@ const fallbackPrediction = () => {
     confidence,
     recommendation:
       healthStatus === 'Healthy'
-        ? 'Plant looks healthy. Keep monitoring and maintain regular care.'
+        ? 'ط.'
         : sample.recommendation
   };
 };
 
-// Gemini client
 const geminiKey = process.env.GEMINI_API_KEY;
 // Allow overrides via env; defaults to models your key actually lists (2.5 family)
 const geminiModelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
@@ -39,7 +39,7 @@ const prompt = `You are a plant disease detector. Given a leaf photo, respond wi
   "healthStatus": "Healthy" or "Diseased",
   "diseaseType": "short name",
   "confidence": number 0-1,
-  "recommendation": "short action"
+  "recommendation": "short action if healthy Plant say looks healthy. Keep monitoring and maintain regular care"
 }
 Only return JSON.`;
 
@@ -74,6 +74,30 @@ const parseGeminiResponse = (text) => {
   };
 };
 
+const plantDiseaseApiUrl =
+  process.env.PLANT_DISEASE_API_URL || 'https://plant-disease-api-production-cb.up.railway.app/predict';
+
+const callPlantDiseaseApi = async (filePath) => {
+  const formData = new FormData();
+  formData.append('file', fs.createReadStream(filePath), path.basename(filePath));
+
+  console.info(`[ML] Plant disease API request ${plantDiseaseApiUrl}`);
+  const { data } = await axios.post(plantDiseaseApiUrl, formData, {
+    headers: formData.getHeaders(),
+    timeout: 15000,
+  });
+
+  const predictedClass = data.predicted_class || 'Unknown';
+  const healthStatus = predictedClass.toLowerCase().includes('healthy') ? 'Healthy' : 'Diseased';
+
+  return {
+    healthStatus,
+    diseaseType: predictedClass,
+    confidence: typeof data.confidence_score === 'number' ? data.confidence_score : 0.5,
+    recommendation: data.recommended_action || 'Monitor the plant.'
+  };
+};
+
 const callGemini = async (filePath) => {
   if (!geminiKey) return null;
   const genAI = new GoogleGenerativeAI(geminiKey);
@@ -89,14 +113,14 @@ const callGemini = async (filePath) => {
     const parts = geminiTextMode
       ? [prompt, geminiTextQuery]
       : [
-          prompt,
-          {
-            inlineData: {
-              data: imageData,
-              mimeType
-            }
+        prompt,
+        {
+          inlineData: {
+            data: imageData,
+            mimeType
           }
-        ];
+        }
+      ];
     const result = await model.generateContent(parts);
     const text = result?.response?.text?.() || '';
     console.info(`[ML] Gemini response model=${modelName} apiVersion=${apiVersion} textLength=${text.length}`);
@@ -155,12 +179,21 @@ const callHttpService = async (filePath) => {
 
 exports.analyzeImage = async (filePath) => {
   try {
-    // Prefer Gemini if key is present
+    // Primary: dedicated plant disease API
+    try {
+      console.info('[ML] analyzeImage: attempting plant-disease API');
+      const apiResult = await callPlantDiseaseApi(filePath);
+      if (apiResult) return apiResult;
+    } catch (apiErr) {
+      console.warn('[ML] Plant API failed, will fallback to Gemini', apiErr.message);
+    }
+
+    // Fallback: Gemini
     console.info('[ML] analyzeImage: attempting Gemini path');
     const geminiResult = await callGemini(filePath);
     if (geminiResult) return geminiResult;
 
-    // Otherwise optional HTTP service
+    // Optional secondary HTTP service
     const httpResult = await callHttpService(filePath);
     if (httpResult) return httpResult;
 
@@ -170,7 +203,9 @@ exports.analyzeImage = async (filePath) => {
       return fallbackPrediction();
     }
 
-    throw new Error('ML service unavailable: configure GEMINI_API_KEY or ML_SERVICE_URL.');
+    throw new Error(
+      'ML service unavailable: configure PLANT_DISEASE_API_URL, GEMINI_API_KEY, or ML_SERVICE_URL.'
+    );
   } catch (err) {
     console.warn('ML service failed', err.message);
     if (process.env.ALLOW_FALLBACK === 'true') {
