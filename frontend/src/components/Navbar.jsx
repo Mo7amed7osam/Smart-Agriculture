@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,6 +7,22 @@ const Navbar = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [theme, setTheme] = useState('light');
+
+  useEffect(() => {
+    const stored = localStorage.getItem('theme');
+    if (stored === 'dark' || stored === 'light') {
+      setTheme(stored);
+      document.documentElement.setAttribute('data-theme', stored);
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   const handleLogout = () => {
     logout();
@@ -14,6 +30,7 @@ const Navbar = () => {
   };
 
   const isActive = (path) => (location.pathname === path ? 'active' : '');
+  const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
 
   return (
     <nav className="navbar">
@@ -32,7 +49,7 @@ const Navbar = () => {
           to="/upload"
           onClick={() => setOpen(false)}
         >
-          Upload
+          Home
         </Link>
         <Link
           className={`nav-link ${isActive('/history')}`}
@@ -41,6 +58,15 @@ const Navbar = () => {
         >
           History
         </Link>
+        <button
+          className="nav-link icon-btn"
+          type="button"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
         <button className="nav-link danger" onClick={handleLogout}>
           Logout
           {user?.name && <span className="user-tag">{user.name}</span>}

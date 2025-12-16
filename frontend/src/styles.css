@@ -2,7 +2,12 @@
 
 :root {
   --bg: radial-gradient(circle at 10% 10%, #f5f7fb, #eef2f7 45%, #f7f9ff);
-  --card: #ffffff;
+  --nav: linear-gradient(120deg, #f9fafb, #f3f4f6);
+  --card: rgba(255, 255, 255, 0.94);
+  --card-soft: linear-gradient(145deg, #f8fbff, #f4f6fb);
+  --panel: #f6f8ff;
+  --file-bg: #f5f8fb;
+  --input-bg: #f9fafb;
   --border: #e5e7eb;
   --text: #0f172a;
   --muted: #6b7280;
@@ -10,7 +15,28 @@
   --primary-dark: #1f6b50;
   --danger: #dc2626;
   --success: #16a34a;
+  --confidence-track: #e5e7eb;
   --shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme='dark'],
+.theme-dark {
+  --bg: radial-gradient(circle at 15% 10%, #0b1220, #0f172a 45%, #0b162b);
+  --nav: linear-gradient(120deg, #0f172a, #0b1220);
+  --card: rgba(15, 23, 42, 0.96);
+  --card-soft: linear-gradient(145deg, #0f1628, #101a2f);
+  --panel: #0f172a;
+  --file-bg: #0c1323;
+  --input-bg: #0c1323;
+  --border: #1f2937;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --primary: #22c55e;
+  --primary-dark: #16a34a;
+  --danger: #f87171;
+  --success: #34d399;
+  --confidence-track: #1f2937;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -35,7 +61,7 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 0.8rem 1.4rem;
-  background: linear-gradient(120deg, #f9fafb, #f3f4f6);
+  background: var(--nav);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -74,6 +100,13 @@ a {
   transition: color 0.2s ease, text-decoration-color 0.2s ease;
   text-decoration: underline transparent;
   text-underline-offset: 4px;
+}
+
+.nav-link.icon-btn {
+  padding: 0.2rem;
+  font-size: 1rem;
+  text-decoration: none;
+  line-height: 1;
 }
 
 .nav-link:hover {
@@ -132,7 +165,7 @@ a {
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 18px;
   box-shadow: var(--shadow);
@@ -193,7 +226,7 @@ input[type='password'] {
   padding: 0.7rem;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: #f9fafb;
+  background: var(--input-bg);
 }
 
 .file-input {
@@ -201,7 +234,7 @@ input[type='password'] {
   padding: 0.9rem;
   border-radius: 12px;
   color: var(--primary);
-  background: #f5f8fb;
+  background: var(--file-bg);
   cursor: pointer;
   position: relative;
   min-height: 90px;
@@ -276,8 +309,8 @@ button:disabled {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 1rem;
-  background: linear-gradient(145deg, #f8fbff, #f4f6fb);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  background: var(--card-soft);
+  box-shadow: var(--shadow);
 }
 
 .history-card strong {
@@ -376,7 +409,7 @@ button:disabled {
 .confidence-bar {
   flex: 1;
   height: 10px;
-  background: #e5e7eb;
+  background: var(--confidence-track);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -387,10 +420,10 @@ button:disabled {
 }
 
 .highlight {
-  background: #f6f8ff;
+  background: var(--panel);
   border-radius: 10px;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #e0e7ff;
+  border: 1px solid var(--border);
 }
 
 .result-block {
@@ -438,7 +471,7 @@ button:disabled {
 }
 
 .sample-grid.soft img {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   box-shadow: none;
 }
 
