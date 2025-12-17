@@ -1,6 +1,6 @@
 # Smart Agriculture – AI for Plant Diseases
 
-This project contains a Node.js/Express backend and a React (Vite) frontend for uploading leaf images, sending them to an ML classifier (mocked by default), storing results in MongoDB, and viewing prediction history per user.
+This project contains a Node.js/Express backend and a React (Vite) frontend for uploading leaf images, sending them to an ML classifier, storing results in MongoDB, and viewing prediction history per user.
 
 ## Backend
 
