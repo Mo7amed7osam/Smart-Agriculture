@@ -1,4 +1,5 @@
 require('dotenv').config();
+const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const express = require('express');
@@ -21,6 +22,17 @@ app.use('/api/auth', authRoutes);
 app.use('/api/predictions', predictionRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
 
 app.use((err, req, res, next) => {
   console.error(err);
